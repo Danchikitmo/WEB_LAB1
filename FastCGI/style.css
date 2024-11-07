@@ -1,0 +1,99 @@
+body {
+    font-family: "Times New Roman", Times, serif;
+    font-style: italic;
+    font-size: 15px;
+    margin: 0;
+    padding: 0;
+}
+
+form input[type="text"],
+form input[type="button"] {
+    padding: 2% 4%;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+
+
+header, footer {
+    background-color: #f0f0f0;
+    padding: 10px;
+}
+
+main {
+    padding: 20px;
+}
+
+form {
+    margin-bottom: 20px;
+}
+
+input[name="r"].selected {
+    border: 2px solid #FF6961;
+    background-color: black;
+}
+
+form label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+#y {
+    width: 100%;
+    padding: 5px;
+    box-sizing: border-box;
+}
+
+form input[type="button"] {
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+#result {
+    padding: 10px;
+    border: 1px solid #ccc;
+    align: center;
+    text-align: center;
+}
+
+footer {
+    text-align: center;
+}
+
+/* Table styles */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+/* Table row styles */
+tr {
+    background-color: #f9f9f9;
+    align-self: center;
+}
+
+tr:nth-child(even) {
+    background-color: #f0f0f0;
+}
+
+/* Table cell styles */
+td, th {
+    padding: 10px;
+    border: 1px solid #ccc;
+    text-align: center;
+}
+
+th {
+    background-color: #e0e0e0;
+    font-weight: bold;
+}
+
+input[type="button"]:hover {
+    opacity: 0.9;
+}
+
+#error-state {
+    font-size: 30px;
+}

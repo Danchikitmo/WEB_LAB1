@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Проверка точки</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+    <h1>Проверка точки</h1>
+    <p>ФИО: Андреев Даниил Алексеевич</p>
+    <p>Группа: P3220</p>
+    <p>Вариант: 395233</p>
+</header>
+
+<main>
+    <form id="main-form">
+
+        <img src="photo.png" width="30%" height="30%">
+
+        <label for="mySelect">
+            <label for="X">X</label>
+            <select id="mySelect" name="mySelect">
+                <option value=-3>-3</option>
+                <option value=-2>-2</option>
+                <option value=-1>-1</option>
+                <option value=0>0</option>
+                <option value=1>1</option>
+                <option value=2>2</option>
+                <option value=3>3</option>
+                <option value=4>4</option>
+                <option value=5>5</option>
+            </select>
+        </label>
+
+
+        <label for="y">Y (от -3 до 5):</label>
+        <input id="y" name="y" step="0.01" required>
+
+        <label for="r">R</label>
+        <label>
+            <input type="button" name="r" value="1" onclick="handleClick(event)">
+            <input type="button" name="r" value="1.5" onclick="handleClick(event)">
+            <input type="button" name="r" value="2" onclick="handleClick(event)">
+            <input type="button" name="r" value="2.5" onclick="handleClick(event)">
+            <input type="button" name="r" value="3" onclick="handleClick(event)">
+        </label>
+
+        <input onclick="validate()" type="button" value="Проверить">
+    </form>
+
+    <div id ="responseContainer">
+        <h4>Ответ от сервера: <span id="text"></span></h4>
+    </div>
+    <div id="error-state"></div>
+
+    <table id="result"></table>
+
+    <script>
+        const Y_MAX = 5;
+        const Y_MIN = -3;
+        let r = "";
+
+        function handleClick(event) {
+            const button = event.target;
+            r = button.value;
+
+            // Убираем выделение с других кнопок
+            const buttons = document.querySelectorAll("input[name='r']");
+            buttons.forEach(btn => btn.style.border = "");
+
+            // Добавляем выделение для нажатой кнопки
+            button.style.border = "2px solid #FF6961"; // Можно поменять цвет и толщину
+        }
+
+        function raiseError(message) {
+            const error_message_element = document.getElementById("error-state")
+            error_message_element.innerHTML = message;
+
+            setTimeout(() => {
+                error_message_element.innerHTML = "";
+            }, 3000)
+        }
+
+        function sendRequest(x, y, r) {
+            const url = `http://localhost:8080/fcgi-bin/FastCGI.jar?x_field=${x}&y_field=${y}&R_field=${r}`;
+
+            fetch(url,
+                {
+                    method: 'GET',
+                }
+            ).then(response => response.json())
+                .then(data => {
+                    displayResponse(data);
+
+                    const curTime = new Date().toLocaleString("en-US", {timeZone: "Europe/Moscow"});
+                    const row = document.createElement('tr');
+                    const resultObject = document.getElementById("result");
+
+
+
+                    row.innerHTML = `
+                        <td>${x}</td>
+                        <td>${y}</td>
+                        <td>${r}</td>
+                        <td>${curTime}</td>
+                        <td>${data.exec_time}</td>
+                        <td>${data.hit}</td>`
+
+                    if (!resultObject.innerHTML.trim()) {
+                        const header = document.createElement("thead")
+                        header.innerHTML = `<tr>
+                                            <th>X</th>
+                                            <th>Y</th>
+                                            <th>R</th>
+                                            <th>Current Time</th>
+                                            <th>Script Execution Time</th>
+                                            <th>Hit</th>
+                                            </tr>`
+
+                        resultObject.append(header)
+                    }
+                    resultObject.append(row);
+                })
+                .catch(error => {
+                    console.error('error: ', error);
+                })
+        }
+
+        function displayResponse(data){
+            const text = document.getElementById('text');
+            text.innerText = `${JSON.stringify(data.hit)}`;
+        }
+
+        function validate() {
+            let x = document.getElementById('mySelect').value;
+            let y = document.getElementById("y").value;
+
+            const text = document.getElementById('text');
+
+            console.log(x, y, r)
+
+            if (isNaN(x) || isNaN(y) || isNaN(r)) {
+                text.innerText = `${JSON.stringify('All of x, y, r should be numeric')}`;
+            } else {
+                if (y.trim() !== '') {
+                    x = parseInt(x)
+                    y = parseInt(y)
+                    r = parseFloat(r)
+
+                    if ((Y_MIN <= y) && (y <= Y_MAX)) {
+                        sendRequest(x, y, r);
+                    } else {
+                        text.innerText = `${JSON.stringify('Y should be float in range of (-3, 5) inclusive')}`;
+                    }
+                } else {
+                    text.innerText = `${JSON.stringify('Y is empty!')}`;
+                }
+            }
+        }
+
+    </script>
+</main>
+
+<footer>
+    <p>&copy; 2024</p>
+</footer>
+</body>
+</html>
