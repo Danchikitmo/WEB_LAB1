@@ -15,24 +15,22 @@
 
 <main>
     <form id="main-form">
-
         <img src="photo.png" width="30%" height="30%">
 
         <label for="mySelect">
             <label for="X">X</label>
             <select id="mySelect" name="mySelect">
-                <option value=-3>-3</option>
-                <option value=-2>-2</option>
-                <option value=-1>-1</option>
-                <option value=0>0</option>
-                <option value=1>1</option>
-                <option value=2>2</option>
-                <option value=3>3</option>
-                <option value=4>4</option>
-                <option value=5>5</option>
+                <option value="-3">-3</option>
+                <option value="-2">-2</option>
+                <option value="-1">-1</option>
+                <option value="0">0</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
             </select>
         </label>
-
 
         <label for="y">Y (от -3 до 5):</label>
         <input id="y" name="y" step="0.01" required>
@@ -49,85 +47,69 @@
         <input onclick="validate()" type="button" value="Проверить">
     </form>
 
-    <div id ="responseContainer">
+    <div id="responseContainer">
         <h4>Ответ от сервера: <span id="text"></span></h4>
     </div>
     <div id="error-state"></div>
 
-    <table id="result"></table>
+    <div id="pagination" style="margin-bottom: 20px">
+        <button onclick="prevPage()">Назад</button>
+        <span id="page-info"></span>
+        <button onclick="nextPage()">Вперед</button>
+    </div>
+
+    <table id="result" ></table>
 
     <script>
         const Y_MAX = 5;
         const Y_MIN = -3;
         let r = "";
+        let dataRows = [];
+        let currentPage = 1;
+        const rowsPerPage = 5;
 
         function handleClick(event) {
             const button = event.target;
             r = button.value;
 
-            // Убираем выделение с других кнопок
             const buttons = document.querySelectorAll("input[name='r']");
             buttons.forEach(btn => btn.style.border = "");
 
-            // Добавляем выделение для нажатой кнопки
-            button.style.border = "2px solid #FF6961"; // Можно поменять цвет и толщину
+            button.style.border = "2px solid #FF6961";
         }
 
         function raiseError(message) {
-            const error_message_element = document.getElementById("error-state")
+            const error_message_element = document.getElementById("error-state");
             error_message_element.innerHTML = message;
 
             setTimeout(() => {
                 error_message_element.innerHTML = "";
-            }, 3000)
+            }, 3000);
         }
 
         function sendRequest(x, y, r) {
             const url = `http://localhost:8080/fcgi-bin/FastCGI.jar?x_field=${x}&y_field=${y}&R_field=${r}`;
 
-            fetch(url,
-                {
-                    method: 'GET',
-                }
-            ).then(response => response.json())
+            fetch(url, { method: 'GET' })
+                .then(response => response.json())
                 .then(data => {
-                    displayResponse(data);
-
-                    const curTime = new Date().toLocaleString("en-US", {timeZone: "Europe/Moscow"});
-                    const row = document.createElement('tr');
-                    const resultObject = document.getElementById("result");
-
-
-
-                    row.innerHTML = `
-                        <td>${x}</td>
-                        <td>${y}</td>
-                        <td>${r}</td>
-                        <td>${curTime}</td>
-                        <td>${data.exec_time}</td>
-                        <td>${data.hit}</td>`
-
-                    if (!resultObject.innerHTML.trim()) {
-                        const header = document.createElement("thead")
-                        header.innerHTML = `<tr>
-                                            <th>X</th>
-                                            <th>Y</th>
-                                            <th>R</th>
-                                            <th>Current Time</th>
-                                            <th>Script Execution Time</th>
-                                            <th>Hit</th>
-                                            </tr>`
-
-                        resultObject.append(header)
-                    }
-                    resultObject.append(row);
+                    const curTime = new Date().toLocaleString("en-US", { timeZone: "Europe/Moscow" });
+                    dataRows.unshift({
+                        x: x,
+                        y: y,
+                        r: r,
+                        curTime: curTime,
+                        execTime: data.exec_time,
+                        hit: data.hit
+                    });
+                    updateTable();
                 })
                 .catch(error => {
                     console.error('error: ', error);
-                })
+                });
         }
 
-        function displayResponse(data){
+        function displayResponse(data) {
             const text = document.getElementById('text');
             text.innerText = `${JSON.stringify(data.hit)}`;
         }
@@ -136,29 +118,77 @@
             let x = document.getElementById('mySelect').value;
             let y = document.getElementById("y").value;
 
-            const text = document.getElementById('text');
-
-            console.log(x, y, r)
-
             if (isNaN(x) || isNaN(y) || isNaN(r)) {
-                text.innerText = `${JSON.stringify('All of x, y, r should be numeric')}`;
+                displayResponse({ hit: 'Все координаты x, y, r должны быть числами' });
             } else {
                 if (y.trim() !== '') {
-                    x = parseInt(x)
-                    y = parseInt(y)
-                    r = parseFloat(r)
+                    x = parseInt(x);
+                    y = parseFloat(y);
+                    r = parseFloat(r);
 
                     if ((Y_MIN <= y) && (y <= Y_MAX)) {
                         sendRequest(x, y, r);
                     } else {
-                        text.innerText = `${JSON.stringify('Y should be float in range of (-3, 5) inclusive')}`;
+                        displayResponse({ hit: 'Y должен быть в диапазоне (-3; 5)' });
                     }
                 } else {
-                    text.innerText = `${JSON.stringify('Y is empty!')}`;
+                    displayResponse({ hit: 'Y пустое!' });
                 }
             }
         }
 
+        function updateTable() {
+            const resultObject = document.getElementById("result");
+            resultObject.innerHTML = "";
+            const header = document.createElement("thead");
+            header.innerHTML = `
+                <tr>
+                    <th>X</th>
+                    <th>Y</th>
+                    <th>R</th>
+                    <th>Current Time</th>
+                    <th>Script Execution Time</th>
+                    <th>Hit</th>
+                </tr>`;
+            resultObject.append(header);
+
+            const start = (currentPage - 1) * rowsPerPage;
+            const end = start + rowsPerPage;
+            const rowsToShow = dataRows.slice(start, end);
+
+            rowsToShow.forEach(row => {
+                const rowElement = document.createElement('tr');
+                rowElement.innerHTML = `
+                    <td>${row.x}</td>
+                    <td>${row.y}</td>
+                    <td>${row.r}</td>
+                    <td>${row.curTime}</td>
+                    <td>${row.execTime}</td>
+                    <td>${row.hit}</td>`;
+                resultObject.append(rowElement);
+            });
+
+            updatePageInfo();
+        }
+
+        function updatePageInfo() {
+            const pageInfo = document.getElementById("page-info");
+            pageInfo.textContent = `Страница ${currentPage} из ${Math.ceil(dataRows.length / rowsPerPage)}`;
+        }
+
+        function nextPage() {
+            if (currentPage < Math.ceil(dataRows.length / rowsPerPage)) {
+                currentPage++;
+                updateTable();
+            }
+        }
+
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                updateTable();
+            }
+        }
     </script>
 </main>
 

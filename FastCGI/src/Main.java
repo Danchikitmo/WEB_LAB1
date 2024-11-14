@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class Main {
-    public static void main(String[] args) throws IOException, ValidationException {
+    public static void main(String[] args) throws IOException {
 
         var fcgiInterface = new FCGIInterface();
 
@@ -47,34 +47,33 @@ public class Main {
         """;
 
             var query = System.getProperties().getProperty("QUERY_STRING");
+//            FCGIInterface.request.params.getProperty("QUERY_STRING");
 
             var request = readRequestBody(query);
-            validateParams(request);
-            long startTime = System.nanoTime();
 
-            String rField = request.get("R_field");
-            if (rField == null || rField.isEmpty()) {
-                // Обработка ошибки, если R_field отсутствует или пуст
-                String errorResponse = String.format(ERROR_JSON, "R_field is missing or empty");
-                var response = String.format(HTTP_ERROR, errorResponse.getBytes(StandardCharsets.UTF_8).length, errorResponse);
-                System.out.println(response);
-                continue; // Переход к следующему запросу
-            }
-
-            rField = rField.replace(',', '.');
-
-            float rValue;
             try {
-                rValue = Float.parseFloat(rField);
-                // Далее используйте rValue
-            } catch (NumberFormatException e) {
-                // Обработка ошибки
-                String errorResponse = String.format(ERROR_JSON, "R_field is invalid or contains an invalid format");
+                validateParams(request);
+            } catch (ValidationException e) {
+                String errorResponse = String.format(ERROR_JSON, e.getMessage());
                 var response = String.format(HTTP_ERROR, errorResponse.getBytes(StandardCharsets.UTF_8).length, errorResponse);
                 System.out.println(response);
                 continue;
             }
 
+            long startTime = System.nanoTime();
+
+            String rField = request.get("R_field");
+            rField = rField.replace(',', '.');
+
+            float rValue;
+            try {
+                rValue = Float.parseFloat(rField);
+            } catch (NumberFormatException e) {
+                String errorResponse = String.format(ERROR_JSON, "R_field is invalid or contains an invalid format");
+                var response = String.format(HTTP_ERROR, errorResponse.getBytes(StandardCharsets.UTF_8).length, errorResponse);
+                System.out.println(response);
+                continue;
+            }
 
             String result;
             try {
@@ -84,13 +83,11 @@ public class Main {
                         rValue
                 );
             } catch (NumberFormatException e) {
-                // Обработка ошибки, если парсинг не удался
                 String errorResponse = String.format(ERROR_JSON, "Invalid number format");
                 var response = String.format(HTTP_ERROR, errorResponse.getBytes(StandardCharsets.UTF_8).length, errorResponse);
                 System.out.println(response);
-                continue; // Переход к следующему запросу
+                continue;
             }
-
 
             long endTime = System.nanoTime();
             String executionTime = String.valueOf(endTime - startTime);
@@ -112,47 +109,52 @@ public class Main {
         return queryPairs;
     }
 
+    // Валидация параметров запроса
     private static void validateParams(Map<String, String> params) throws ValidationException {
+
         var x = params.get("x_field");
         if (x == null || x.isEmpty()) {
-            throw new ValidationException("x is invalid");
+            throw new ValidationException("x_field is empty");
         }
+
+        x = x.replace(',', '.');
 
         try {
             var xx = Integer.parseInt(x);
             if (xx < -3 || xx > 5) {
-                throw new ValidationException("x has forbidden value");
+                throw new ValidationException("x_field has forbidden value");
             }
         } catch (NumberFormatException e) {
-            throw new ValidationException("x is not a number");
+            throw new ValidationException("x_field is not a number");
         }
 
         var y = params.get("y_field");
         if (y == null || y.isEmpty()) {
-            throw new ValidationException("y is invalid");
+            throw new ValidationException("y_field is empty");
         }
+
+        y = y.replace(',', '.');
 
         try {
             var yy = Float.parseFloat(y);
             if (yy < -3 || yy > 5) {
-                throw new ValidationException("y has forbidden value");
+                throw new ValidationException("y_field has forbidden value");
             }
         } catch (NumberFormatException e) {
-            throw new ValidationException("y is not a number");
+            throw new ValidationException("y_field is not a number");
         }
 
+        // Проверка и обработка для R_field
         var r = params.get("R_field");
         if (r == null || r.isEmpty()) {
-            throw new ValidationException("R_field is invalid");
+            throw new ValidationException("R_field is empty");
         }
 
-        if (r.contains(",")) {
-            throw new ValidationException("R_field cannot contain a comma.");
-        }
+        r = r.replace(',', '.');
 
         try {
             var rr = Float.parseFloat(r);
-            if (rr < 1 || rr > 3) {
+            if (!(rr == 1 || rr == 1.5 || rr == 2 || rr == 2.5 || rr == 3)) {
                 throw new ValidationException("R_field has forbidden value");
             }
         } catch (NumberFormatException e) {
